@@ -16,5 +16,9 @@ public partial class MainPage : ContentPage
 
 		SemanticScreenReader.Announce(CounterLabel.Text);
 	}
-}
 
+    private void OnShowOrHide(object sender, EventArgs e)
+    {
+		icon.IsVisible = !icon.IsVisible;
+    }
+}
