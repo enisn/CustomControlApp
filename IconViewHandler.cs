@@ -162,3 +162,7 @@ public partial class IconViewHandler : ViewHandler<IIconView, ImageView>
         }
     }
 #endif
+
+#if WINDOWS
+// ...
+#endif
