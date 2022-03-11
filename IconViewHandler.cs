@@ -2,6 +2,10 @@
 
 #if __IOS__ || MACCATALYST
 using NativeView = UIKit.UIImageView;
+using UIKit;
+using Microsoft.Maui.Controls.Compatibility.Platform.iOS;
+using Foundation;
+using CoreGraphics;
 
 #elif ANDROID
 using NativeView = Android.Widget.ImageView;
@@ -99,4 +103,62 @@ public partial class IconViewHandler : ViewHandler<IIconView, ImageView>
         handler.TypedNativeView.SetImageDrawable(d);
     }
 }
+#endif
+
+#if __IOS__ || MACCATALYST
+
+    public partial class IconViewHandler : ViewHandler<IIconView, UIImageView>
+    {
+        protected override UIImageView CreateNativeView()
+        {
+            return new UIImageView(CGRect.Empty)
+            {
+                ContentMode = UIViewContentMode.ScaleAspectFit,
+                ClipsToBounds = true
+            };
+        }
+
+        public static void MapSource(IIconViewHandler handler, IIconView view)
+        {
+            SetUIImage(handler, view);
+        }
+
+        public static void MapFillColor(IIconViewHandler handler, IIconView view)
+        {
+            SetUIImage(handler, view);
+        }
+
+        private static void SetUIImage(IIconViewHandler handler, IIconView view)
+        {
+            System.Diagnostics.Debug.WriteLine("[IconView] Source updated as : " + view?.Source);
+            if (view?.Source == null) return;
+
+            UIImage uiImage = default;
+
+            if (view.Source is StreamImageSource streamImageSource)
+            {
+                var cTokenSource = new CancellationTokenSource(30000);
+                var stream = streamImageSource.Stream(cTokenSource.Token).Result;
+                var data = NSData.FromStream(stream);
+                uiImage = UIImage.LoadFromData(data);
+            }
+            else if (view.Source is FileImageSource fileImageSource)
+            {
+                uiImage = UIImage.FromBundle(fileImageSource.File);
+            }
+            else
+            {
+                if (view.Source?.ToString().StartsWith("http") ?? false)
+                    uiImage = new UIImage(view.Source.ToString());
+                else
+                    uiImage = UIImage.FromBundle(view.Source.ToString());
+            }
+
+            uiImage = uiImage.ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
+            handler.TypedNativeView.TintColor = view.FillColor.ToUIColor();
+            handler.TypedNativeView.Image = uiImage;
+
+            ((IVisualElementController)view).NativeSizeChanged();
+        }
+    }
 #endif
